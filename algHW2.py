@@ -7,7 +7,7 @@ def DFSfindOptimal(path):
     printFloor(floor)
     minStepCount = 100000000
     minFound = False
-
+    maxSteps = (n-(k-1)) * (m-(k-1))
     #set of candidates
     #using list G as stack
     startState = floorState(floor, None, 0)
@@ -19,26 +19,38 @@ def DFSfindOptimal(path):
 
     while minFound == False:
         #next state generator
-        #pop next parent off of the stack and generate children from it
-        nextParent = G.pop()
+        #find the most promising parent and generate children from it
+        bestNextParent = None
+        mostTiles = 0
+        for floor in G:
+            x = countTiles(floor.floor)
+            if x > mostTiles:
+                mostTiles = x
+                bestNextParent = floor
+                G.remove(floor)
+        #printFloor(bestNextParent.floor)
+        #print()
+        #time.sleep(4)
         for line in range(0,n):
             for col in range(0,m):
                 #copy floor of parent
-                newFloor = copy.deepcopy(nextParent.floor)
+                newFloor = copy.deepcopy(bestNextParent.floor)
+                #make sure flipper is not outside the bounds of the floor
                 if line + k <= n and col + k <= m:
                     tileFilpper([line,col], newFloor, k)
                     #feasibility check to make sure states are not repeated
-                    if checkParentStates(nextParent, newFloor, nextParent.steps+1) == True:
+                    if checkParentStates(bestNextParent, newFloor, bestNextParent.steps+1) == True:
                         #the third argument "steps" is the objective funciton
                         #representing how many levels down from the root node the child is
-                        newCandidate = floorState(newFloor, nextParent, nextParent.steps+1)
-                        #push new candidate onto the stack if there is not already a solution higher in the tree
-                        if(newCandidate.steps <= minStepCount):
-                            G.append(newCandidate)
+                        newCandidate = floorState(newFloor, bestNextParent, bestNextParent.steps+1)
                         #check if new candidate is a solution
                         if solutionChecker(n, m, newCandidate.floor):
                             if newCandidate.steps < minStepCount:
                                 minStepCount = newCandidate.steps
+                        #push new candidate onto the stack if there is not already a solution higher in the tree
+                        elif(newCandidate.steps <= minStepCount and newCandidate.steps <= maxSteps):
+                            G.append(newCandidate)
+                        
         if not G:
             minFound = True
     if minStepCount == 100000000:
@@ -62,13 +74,21 @@ def tileFilpper(topLeftCoord, floorMatrix, sizeOfFlipper):
             else:
                 floorMatrix[topLeftCoord[0] + line][topLeftCoord[1] + col] = 0
 
+def countTiles(floorMatrix):
+    count = 0
+    for line in floorMatrix:
+        for col in line:
+            if col == 1:
+                count+=1
+    return count
+
 #makes printed output visually match the intuitive understanding of floor layout
 def printFloor(floorMatrix):
     for line in floorMatrix:
         print(line)
 
 def checkParentStates(parent, newFloor, steps):
-    if parent.parent == None or steps > parent.steps + 900:
+    if parent == None or steps > parent.steps + 900:
         return True
     elif parent.floor == newFloor:
         return False
@@ -94,13 +114,11 @@ def readFromInputfile(path):
     return n, m, k, floorMatrix
 
 def runTests():
-    testNums = [1,2,3,4,5,6,7,8,9,10,37,38,39,40,41,42,43,44,45,46,47]
-    experiment1 = [ 4, 46 ]
+    testNums = [1,2,3,4,6,9,44,46,47]
     f = open("C:\\Users\\user\\Desktop\\alg\\AlgHW2\\truthData.txt", "r")
     truthData = []
     for line in f:
         truthData.append(int(line))
-    print("Truth Data: " + str(truthData))
     for x in range(0,len(testNums)):
         path = "C:\\Users\\user\\Desktop\\alg\\AlgHW2\\TestCases\\testInput" + str(testNums[x]) + ".txt"
         start = time.time()
